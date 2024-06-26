@@ -1,0 +1,52 @@
+----------------------------Common commands------------------------------
+
+CREATE TABLE IF NOT EXISTS vlad_air_quality(Year INT, Month INT, Post INT, Substance STRING, Count INT, Qsr FLOAT, Sigma FLOAT, Qmax FLOAT)
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ',';
+
+LOAD DATA LOCAL INPATH '/home/student/new_data.txt' OVERWRITE INTO TABLE vlad_air_quality;
+
+DROP TABLE IF EXISTS air_quality;
+
+INSERT OVERWRITE DIRECTORY 'hdfs://localhost:9000/user/student/output'
+ROW FORMAT DELIMITED
+FIELDS TERMINATED BY ','
+SELECT * FROM air_quality WHERE POST = -1 AND Substance = "Бензапирен";
+
+hdfs dfs -getmerge /user/student/output /home/student/output.csv;
+
+----------------------------Substance avg by year------------------------
+
+SELECT Year, AVG(Qsr) AS Avg_Qsr 
+FROM air_quality 
+WHERE Qsr != -1 AND Qsr != 0 AND Substance = "Взвешенные вещества" AND Month != -1
+GROUP BY Year;
+
+----------------------------Different seasons----------------------------
+
+SELECT "Winter", AVG(Qsr)
+FROM air_quality
+WHERE Qsr != -1 AND Substance = "Аммиак" AND Month IN (12,1,2)
+UNION
+SELECT "Spring", AVG(Qsr)
+FROM air_quality
+WHERE Qsr != -1 AND Substance = "Аммиак" AND Month IN (3,4,5)
+UNION
+SELECT "Summer", AVG(Qsr)
+FROM air_quality
+WHERE Qsr != -1 AND Substance = "Аммиак" AND Month IN (6,7,8)
+UNION
+SELECT "Autumn", AVG(Qsr)
+FROM air_quality
+WHERE Qsr != -1 AND Substance = "Аммиак" AND Month IN (9,10,11);
+
+----------------------------Different regions----------------------------
+
+SELECT Post, AVG(Qsr), Substance
+FROM air_quality
+WHERE Qsr != -1 
+  AND Post IN (36, 15, 17, 3) 
+  AND Substance IN ("Аммиак", "Взвешенные вещества", "Формальдегид") 
+  AND Year = 2023
+GROUP BY Post, Substance
+ORDER BY Post DESC;
